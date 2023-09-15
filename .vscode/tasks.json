@@ -1,0 +1,109 @@
+{
+    "version": "2.0.0",
+    "command": "bash",
+    "args": [
+        "-c"
+    ],
+    "options": {
+        "cwd": "${workspaceFolder}/src"
+    },
+    "tasks": [
+      {
+        "label": "Publish incr",
+        "command": "python",
+        "args": [
+            "../publish.py",
+            "increment"
+        ],
+        "group": {
+          "kind": "build",
+          "isDefault": false
+        }
+      },
+      {
+        "label": "Publish patch",
+        "command": "python",
+        "args": [
+            "../publish.py",
+            "patch"
+        ],
+        "group": {
+          "kind": "build",
+          "isDefault": false
+        }
+      },
+      {
+        "label": "Publish minor",
+        "command": "python",
+        "args": [
+            "../publish.py",
+            "minor"
+        ],
+        "group": {
+          "kind": "build",
+          "isDefault": false
+        }
+      },
+      {
+        "label": "Publish major",
+        "command": "python",
+        "args": [
+            "../publish.py",
+            "major"
+        ],
+        "group": {
+          "kind": "build",
+          "isDefault": false
+        }
+      },
+      {
+        "label": "Install",
+        "command": "cmd",
+        "args": [
+            "/c echo installing latest publish && start /min cmd /c start ${workspaceFolder}/publish/poser.aseprite-extension" 
+        ],
+        "group": {
+          "kind": "build",
+          "isDefault": false
+        }
+      },
+
+      {
+        "label": "Run incr",
+        "dependsOn": ["Publish incr", "Install"],
+        "dependsOrder": "sequence",
+        "group": {
+          "kind": "build",
+          "isDefault": true
+        }
+      },
+      {
+        "label": "Run patch",
+        "dependsOn": ["Publish patch", "Install"],
+        "dependsOrder": "sequence",
+        "group": {
+          "kind": "build",
+          "isDefault": false
+        }
+      },
+      {
+        "label": "Run minor",
+        "dependsOn": ["Publish minor", "Install"],
+        "dependsOrder": "sequence",
+        "group": {
+          "kind": "build",
+          "isDefault": false
+        }
+      },
+      {
+        "label": "Run major",
+        "dependsOn": ["Publish major", "Install"],
+        "dependsOrder": "sequence",
+        "group": {
+          "kind": "build",
+          "isDefault": false
+        }
+      }
+    ]
+  }
+  
