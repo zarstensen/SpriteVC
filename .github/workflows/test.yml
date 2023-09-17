@@ -21,6 +21,7 @@ jobs:
                 cache-from: type=gha
                 cache-to: type=gha,mode=max
                 load: true
+                file: test-docker/Dockerfile
                 tags: test:latest
             - name: Run tests
               id: test_run
