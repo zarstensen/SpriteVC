@@ -1,4 +1,4 @@
-name: Test SpriteVC
+name: SpriteVC Tests
 
 on:
     push: {}
