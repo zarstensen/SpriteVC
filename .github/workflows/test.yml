@@ -25,4 +25,4 @@ jobs:
                 tags: test
             - name: Run tests
               id: test_run
-              run: docker-compose run --rm spritevc-test
+              run: docker run --rm test
