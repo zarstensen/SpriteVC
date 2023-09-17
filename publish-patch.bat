@@ -1,2 +1,1 @@
-cd src
-python ../publish.py patch
+python publish.py extension patch zip publish

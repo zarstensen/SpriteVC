@@ -1,10 +1,6 @@
-require 'tests.UnitTest'
-
 --- 
 --- Aseprite extension for automatic version control of sprites.
 --- 
-
-UnitTest:new():performTest()
 
 -- function FOO()
 -- end
@@ -20,6 +16,7 @@ UnitTest:new():performTest()
 -- TEST()
 
 function init(plugin)
+    print("PLUGIN INIT")
 end
 
 function exit(plugin)

@@ -1,2 +1,1 @@
-cd src
-python ../publish.py minor
+python publish.py extension minor zip publish

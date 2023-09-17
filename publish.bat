@@ -1,0 +1,1 @@
+python publish.py test none zip publish

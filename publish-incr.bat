@@ -1,2 +1,1 @@
-cd src
-python ../publish.py increment
+python publish.py extension increment zip publish

@@ -1,0 +1,16 @@
+name: Test Extension
+
+on:
+    push: {}
+
+jobs:
+    build-with-docker:
+        name: Build with Docker
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout repo
+              uses: actions/checkout@v3
+            - name: Build image
+              run: docker compose build test
+            - name: Run tests
+              run: docker compose run --rm test

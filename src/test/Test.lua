@@ -1,5 +1,4 @@
-require '..inherit'
-require 'io'
+require 'inherit'
 
 ---@class Test
 Test = inherit(NewObj, {})
@@ -38,11 +37,13 @@ end
 
 --- Runs all test methods and prints info about the test case to the console.
 ---@return boolean result whether all test ran without issue
+---@return string msg the result string printed to console
 function Test:performTest()
 
     local case_succeded = true
 
-    print(string.format("======== CASE: [%s] ========", self.test_case))
+    local result_str = self._log(string.format("========= CASE: [%s] =========", self.test_case), "")
+
 
     self:setup()
 
@@ -70,19 +71,18 @@ function Test:performTest()
 
         local test_name = test_line:match("function %g+:(%g+)%(%g*%)")
 
-
-        print(string.format("running: [%s] (%s/%s)", test_name, test_num, #self.test_methods))
+            result_str = self._log(string.format("running: [%s] (%s/%s)", test_name, test_num, #self.test_methods), result_str)
         local status, err_msg = pcall(test, self)
 
         if not status then
-            print(err_msg)
-            print("TEST FAILED!")
+            self._log(err_msg, result_str)
+            self._log("TEST FAILED!", result_str)
             
             case_succeded = false
         else
-            print("OK!")
+            result_str = self._log("OK!", result_str)
         end
-        print()
+        result_str = self._log("", result_str)
     end
 
     local status_string = "SUCCESS"
@@ -91,12 +91,16 @@ function Test:performTest()
         status_string = "FAILURE"
     end
     
-    print(string.format("======== %s: [%s] ========", status_string, self.test_case))
-    if not case_succeded then
-        
-    end
-
     self:teardown()
 
-    return case_succeded
+    result_str = self._log(string.format("======== %s: [%s] ========", status_string, self.test_case), result_str)
+
+    return case_succeded, result_str
+end
+
+function Test._log(new_line, msg)
+    msg = msg .. new_line .. '\n'
+    print(new_line)
+
+    return msg
 end
