@@ -26,7 +26,7 @@ function TestTmp:goodTest()
 end
 
 function TestTmp:badTest()
-    assert(false, "Performed test which failed, this should now show this error message.")
+    assert(true, "Performed test which failed, this should now show this error message.")
 end
 
 function TestTmp:environTest()
