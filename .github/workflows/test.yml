@@ -22,7 +22,7 @@ jobs:
                 cache-to: type=gha,mode=max
                 load: true
                 file: test-docker/Dockerfile
-                tags: test:latest
+                tags: test
             - name: Run tests
               id: test_run
-              run: docker-compose run --rm test:latest
+              run: docker-compose run --rm test
