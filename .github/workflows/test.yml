@@ -25,4 +25,4 @@ jobs:
                 tags: test:latest
             - name: Run tests
               id: test_run
-              run: docker-compose run --rm test
+              run: docker-compose run --rm test:latest
