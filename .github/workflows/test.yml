@@ -9,8 +9,23 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - name: Checkout repo
+              id: checkout
               uses: actions/checkout@v3
+            - name: Set up Docker Buildx
+              uses: docker/setup-buildx-action@v3
+            # to speed up build time, we use build-push-action, as this can cache the build
+            # it sadly does not support compose files, so this needs to be compensated for later.
             - name: Build image
-              run: docker-compose build test
+              id: docker_build
+              uses: docker/build-push-action@v5
+              with:
+                context: .
+                cache-from: type=gha
+                cache-to: type=gha,mode=max
+                load: true
+                file: test-docker/Dockerfile
+                tags: test
+            # we are now later, which means we need to use docker run, instead of docker compose run, since we did not use docker compose build before.
             - name: Run tests
-              run: docker-compose run --rm test
+              id: test_run
+              run: docker run --rm test
