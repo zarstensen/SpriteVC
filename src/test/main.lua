@@ -1,3 +1,5 @@
+require 'TestNoFileSprite'
+require 'TestSerialize'
 require 'TestTmp'
 
 --- 
@@ -13,9 +15,12 @@ function init(plugin)
 
     if not result_file then
         print("COULD NOT OPEN RESULT FILE!")
+        return
     end
 
-    local tests = { TestTmp:new(), TestTmp:new() }
+    -- all tests to be run should be placed in this list.
+
+    local tests = { TestNoFileSprite:new(), TestSerializer:new() }
 
     local all_passed = true
     
@@ -30,6 +35,9 @@ function init(plugin)
         
         result_file:write(string.format("\n%s\n", new_msg))
     end
+
+    -- write the result at the bottom of the result file,
+    -- to enable other software to determine whether all tests were passed.
 
     result_file:write(string.format("ALL_PASSED:\n%s", all_passed))
     result_file:close()

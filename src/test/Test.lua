@@ -46,6 +46,28 @@ function Test:_getTests(test_list)
     return test_list
 end
 
+--- Asserts if the given value is false, with the passed message formatted with the passed variadic arguments.
+--- 
+---@param depth number function stack depth to go up when reporting line number. 0 == line where Test.assert is called.
+---@param value boolean
+---@param msg string
+---@param ... any
+function Test.assert(depth, value, msg, ...)
+    assert(value, string.format("\nLine: %s\n%s", debug.getinfo(depth + 2, "l").currentline, string.format(msg, ...)))
+end
+
+--- Asserts if the two given values are not equal, and report the two different values in the assert message.
+---
+---@param depth number
+---@param value any
+---@param exptected_value any
+---@param msg string
+---@param ... any
+function Test.assertEq(depth, value, exptected_value, msg, ...)
+    Test.assert(depth + 1, value == exptected_value, "%s\nExpected:\t%s\nCurrent:\t%s\n", string.format(msg, ...), exptected_value, value)
+end
+
+
 --- This method is called before all the test methods are called.
 --- Use this to setup the testing environment.
 function Test:setup()
@@ -121,6 +143,11 @@ function Test:performTest()
     return case_succeded, result_str
 end
 
+
+--- prints new line to console, and returns the msg string appended with new_line.
+---@param new_line string
+---@param msg string
+---@return string
 function Test._log(new_line, msg)
     msg = msg .. new_line .. '\n'
     print(new_line)
