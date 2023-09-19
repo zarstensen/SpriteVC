@@ -1,6 +1,5 @@
 require 'TestNoFileSprite'
 require 'TestSerialize'
-require 'TestTmp'
 
 --- 
 --- Entry point for test version of the SpriteVC extension.
