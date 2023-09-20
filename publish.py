@@ -70,7 +70,7 @@ with open(package_json_location, 'r+') as package_data:
 
 # lua files will all be stored at the root of the zip file, but is structured differently in the folder structure,
 # so we need to grab all the needed source code files here, and later write them in a flat folder structure into the zip file.
-source_files = [ package_json_location ] 
+source_files = [ package_json_location, "modules/json.lua/json.lua" ] 
 
 for root, _, files in os.walk("src"):
     
