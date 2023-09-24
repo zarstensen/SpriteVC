@@ -62,15 +62,17 @@ FROM base as configure-test-extension
 
 # publish extension to extension directory
 
+ARG ASEPRITE_EXTDIR
+
 COPY publish.py requirements.txt  spritevc/
 COPY src/ spritevc/src/
-
-ARG ASEPRITE_EXTDIR
+COPY modules/ spritevc/modules/
 
 RUN cd spritevc \
     && pip install -r requirements.txt \
     && python publish.py test none no_zip ${ASEPRITE_EXTDIR}
 
+COPY test-docker/assets/ ${ASEPRITE_EXTDIR}/spritevc/assets/
 
 # at this point aseprite has the extension that needs to be tested installed at the contents of ASERITE_EXTDIR_FILE,
 # so this file should be copied over to the test image, in order to figure out which files to copy to transfer aseprite and the extension.

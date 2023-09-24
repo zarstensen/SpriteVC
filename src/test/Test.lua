@@ -67,6 +67,22 @@ function Test.assertEq(depth, value, exptected_value, msg, ...)
     Test.assert(depth + 1, value == exptected_value, "%s\nExpected:\t%s\nCurrent:\t%s\n", string.format(msg, ...), exptected_value, value)
 end
 
+--- Compare all the passed fields in the first and second object.
+--- Asserts with failure message and field info if fields are not all equal.
+---
+---@param depth number
+---@param fields any
+---@param first any
+---@param second any
+---@param failure_message any
+function Test.assertEqFields(depth, fields, first, second, failure_message)
+
+    failure_message = failure_message or ""
+
+    for _, field in ipairs(fields) do
+        Test.assertEq(depth + 1, first[field], second[field], string.format("%s did not match.\n%s", field, failure_message))
+    end
+end
 
 --- This method is called before all the test methods are called.
 --- Use this to setup the testing environment.
@@ -117,7 +133,7 @@ function Test:performTest()
         local test_name = test_line:match("function %g+:(%g+)%(%g*%)")
 
         result_str = self._log(string.format("running: [%s] (%s/%s)", test_name, test_num, #test_methods), result_str)
-        local status, err_msg = pcall(test, self)
+        local status, err_msg = xpcall(test, debug.traceback, self)
 
         if not status then
             self._log(err_msg, result_str)
