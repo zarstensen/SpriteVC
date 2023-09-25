@@ -1,0 +1,1 @@
+docker compose build test && docker image prune -f && docker compose run --rm test

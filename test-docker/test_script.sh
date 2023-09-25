@@ -4,7 +4,7 @@
 /bin/aseprite/aseprite -b
 
 # now check if tests passed
-# the result of all tests is stored in the last line of the file, as "true" or "false" string
+# the result of all the tests is stored in the last line of the file, as "true" or "false" string
 
 result=$(tail -n 1 /tmp/spritevc/test_result.txt)
 

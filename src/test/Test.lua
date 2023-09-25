@@ -19,21 +19,28 @@ end
 --- A method / test fails if it at any points asserts.
 --- 
 --- All methods of the current class are returned, except for methods with a '_' prefix.
---- Methods are sorted first by hirearchy, meaning current instance methods come first, and top base class methods come last, and alphabetically secondly.
+--- Methods are sorted first by hirearchy, meaning current instance methods come first, and top base class methods come last, define line number second, and alphabetically last.
 ---@return table<fun(self: Test)>
 function Test:_getTests(test_list)
 
-    -- We store the methods temporarily in a separate list so we can sort them alphabetically without mixing them with the base methods.
+    -- We store the methods temporarily in a separate list so we can sort them alphabetically and by line defined, without mixing them with the base methods.
 
     local method_list = {}
 
     for field, value in pairs(self) do
         if type(value) == "function" and field:sub(1, 1) ~= '_' and Test[field] == nil then
-            table.insert(method_list, { name = field, method = value })
+            table.insert(method_list, { line = debug.getinfo(value, "S").linedefined, name = field, method = value })
         end
     end
 
-    table.sort(method_list, function(a, b) return a.name < b.name end)
+    table.sort(method_list,
+        function(a, b)
+            if a.line == b.line then
+                return a.name < b.name
+            else
+                return a.line < b.line
+            end
+        end)
 
     for _, method_info in ipairs(method_list) do
         table.insert(test_list, method_info.method)
@@ -61,9 +68,10 @@ end
 ---@param depth number
 ---@param value any
 ---@param exptected_value any
----@param msg string
+---@param msg string | nil
 ---@param ... any
 function Test.assertEq(depth, value, exptected_value, msg, ...)
+    msg = msg or "Assertion failed."
     Test.assert(depth + 1, value == exptected_value, "%s\nExpected:\t%s\nCurrent:\t%s\n", string.format(msg, ...), exptected_value, value)
 end
 
@@ -128,21 +136,22 @@ function Test:performTest()
             end
 
             current_line = current_line + 1
-        end 
+        end
 
         local test_name = test_line:match("function %g+:(%g+)%(%g*%)")
 
-        result_str = self._log(string.format("running: [%s] (%s/%s)", test_name, test_num, #test_methods), result_str)
+        result_str = self._log(string.format("running (%s/%s): [%s] ", test_num, #test_methods, test_name), result_str)
         local status, err_msg = xpcall(test, debug.traceback, self)
 
         if not status then
             self._log(err_msg, result_str)
             self._log("TEST FAILED!", result_str)
-            
+
             case_succeded = false
         else
             result_str = self._log("OK!", result_str)
         end
+
         result_str = self._log("", result_str)
     end
 

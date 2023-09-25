@@ -64,12 +64,18 @@ FROM base as configure-test-extension
 
 ARG ASEPRITE_EXTDIR
 
-COPY publish.py requirements.txt  spritevc/
+# install python requirements for publishing script
+
+COPY requirements.txt spritevc/
+RUN pip install -r spritevc/requirements.txt
+
+# install location
+
+COPY publish.py  spritevc/
 COPY src/ spritevc/src/
 COPY modules/ spritevc/modules/
 
 RUN cd spritevc \
-    && pip install -r requirements.txt \
     && python publish.py test none no_zip ${ASEPRITE_EXTDIR}
 
 COPY test-docker/assets/ ${ASEPRITE_EXTDIR}/spritevc/assets/
