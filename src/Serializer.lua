@@ -29,12 +29,12 @@ end
 -- Arguments to pass to the found serializers serialize function
 ---@return table
 function Serializer:genericSerialize(obj, kwargs)
-    
-    kwargs = kwargs or { }
 
+    kwargs = kwargs or { }
+    
     local serializer_uid = kwargs.uid
     local args = kwargs.args or { }
-
+    
     if not serializer_uid then
         for uid, s in pairs(self.serializers) do
             if s:canSerialize(obj) then
@@ -42,7 +42,7 @@ function Serializer:genericSerialize(obj, kwargs)
             end
         end
     end
-    
+
     if serializer_uid then
         return { uid = serializer_uid, data = self.serializers[serializer_uid]:serialize(obj, table.unpack(args)) }
     end
@@ -196,7 +196,6 @@ end
 ---@param location string
 ---@return table compatible_obj
 function Serializer:makeStoreCompatible(obj, location)
-    
     -- check if object has been serialized
     if type(obj) ~= "table" or not obj.uid then
         return obj
@@ -242,8 +241,6 @@ function Serializer:makeLoadCompatible(obj, location)
 end
 
 
---- Serializer class for the Aseprite Color object.
----
 ---@class ColorSerializer
 ColorSerializer = inherit(Serializer, { })
 Serializer:register("Color", ColorSerializer)
@@ -267,8 +264,6 @@ function ColorSerializer:deserialize(color)
 end
 
 
---- Serializer class for Aseprite Rectangle objects.
----
 ---@class RectSerializer
 RectSerializer = inherit(Serializer, { copy_fields = { "x", "y", "w", "h" } })
 Serializer:register("Rectangle", RectSerializer)
@@ -286,8 +281,6 @@ function RectSerializer:deserialize(rect_table)
 end
 
 
---- Serializer class for Aseprite Point objects.
----
 ---@class PointSerializer
 PointSerializer = inherit(Serializer, { copy_fields = { "x", "y" } })
 Serializer:register("Point", PointSerializer)
@@ -304,23 +297,23 @@ function PointSerializer:deserialize(point_table)
     return Point(point_table.x, point_table.y)
 end
 
---- Serializer class for Aseprite Size objects.
----
 ---@class SizeSerializer
 SizeSerializer = inherit(Serializer, { copy_fields = { "w", "h" } })
 Serializer:register("Size", SizeSerializer)
 
+---@param size any
+---@return boolean
 function SizeSerializer:canSerialize(size)
     return type(size) == "userdata" and size.__name == "gfx::Size"
 end
 
+---@param size_table any
+---@return unknown
 function SizeSerializer:deserialize(size_table)
     return Size(size_table.w, size_table.h)
 end
 
 
---- Serializer class for serializing Aseprite Frame objects.
----
 ---@class FrameSerializer
 FrameSerializer = inherit(Serializer, { copy_fields = { "duration", "frameNumber" }})
 Serializer:register("Frame", FrameSerializer)
@@ -345,7 +338,6 @@ function FrameSerializer:deserialize(frame, sprite)
 end
 
 
---- Serializer for Aseprite Tag objects.
 ---@class TagSerializer
 TagSerializer = inherit(Serializer, { copy_fields = { "name", "aniDir", "color", "repeats", "data", "properties" } })
 Serializer:register("Tag", TagSerializer)
@@ -386,7 +378,22 @@ Serializer:register("Image", ImageSerializer)
 ---@param image any
 ---@return boolean
 function ImageSerializer:canSerialize(image)
-    return type(image) == "userdata" and image.__name == "ImageObj"
+    if type(image) ~= "userdata" or image.__name ~= "ImageObj" then
+        return false
+    end
+
+    local layer = nil
+
+    -- even if cel is not nil, it might be seen as nil internally in aseprite,
+    -- so do a pcall to catch any errors which may happen if this is the case
+    if image.cel then
+        pcall(function()
+            layer = image.cel.layer
+        end)
+    end
+
+    --- @see TilemapImageSerializer for why the layer type cannot be Tilemap
+    return not layer or not layer.isTilemap
 end
 
 ---@param image Image
@@ -407,7 +414,6 @@ end
 ---@param store_location string
 ---@return number
 function ImageSerializer:beforeStore(image, store_location)
-    
     image:saveAs(app.fs.joinPath(store_location, string.format("/images/%s.png", image.id)))
 
     return image.id
@@ -421,7 +427,6 @@ function ImageSerializer:beforeLoad(image_id, store_location)
 end
 
 
---- Serializer for Aseprite palette object.
 ---@class PaletteSerializer
 PaletteSerializer = inherit(Serializer, { })
 Serializer:register("Palette", PaletteSerializer)
@@ -474,8 +479,6 @@ function PaletteSerializer:beforeLoad(file_name, location)
 end
 
 
---- Serializer for Aseprite Cel object.
----
 ---@class CelSerializer
 CelSerializer = inherit(Serializer, { copy_fields = { "position", "opacity", "zIndex", "color", "data", "properties" }})
 Serializer:register("Cel", CelSerializer)
@@ -486,9 +489,7 @@ function CelSerializer:canSerialize(cel)
     return type(cel) == "userdata" and cel.__name == "Cel"
 end
 
---- Serializing a cel also requires the serialization of its image, but since cels may share images, we store these serialized images in a separate table,
---- in order to preserve the cels shared images.
----
+
 ---@param cel Cel
 ---@param image_table table
 ---@return table
@@ -497,6 +498,9 @@ function CelSerializer:serialize(cel, image_table)
 
     cel_table.image_id = tostring(cel.image.id)
     cel_table.frame = cel.frameNumber
+
+    --- Serializing a cel also requires the serialization of its image, but since cels may share images, we store these serialized images in a separate table,
+    --- in order to preserve the cels shared images.
 
     if not image_table[cel_table.image_id] then
         image_table[cel_table.image_id] = Serializer:genericSerialize(cel.image)
@@ -525,7 +529,6 @@ function CelSerializer:deserialize(cel_table, layer, sprite, image_table)
 end
 
 
---- Serializer for Aseprite Slice object.
 ---@class SliceSerializer
 SliceSerializer = inherit(Serializer, { copy_fields = { "bounds", "center", "color", "data", "name", "pivot", "properties" } })
 Serializer:register("Slice", SliceSerializer)
@@ -544,10 +547,7 @@ function SliceSerializer:deserialize(slice_table, sprite)
 end
 
 
---- Serializer for serializing aseprite layers.
---- Layer cannot be a group, tilemap or reference.
 --- Stackindex is not serialized, so it is recommended that all layers of a sprite are serialized at once, and their stack index is stored by their position in a list.
---- 
 ---@class LayerSerializer
 LayerSerializer = inherit(Serializer, { copy_fields = { "name", "opacity", "blendMode", "isEditable", "isVisible", "isContinuous", "color", "data", "properties" } })
 Serializer:register("Layer", LayerSerializer)
@@ -572,7 +572,6 @@ function LayerSerializer:serialize(layer, image_table)
 end
 
 --- Creates a new layer at the top of the sprites layerstack, and deserializes the passed serialized layer into this new layer.
---- 
 ---@param serialized_layer table
 ---@param sprite Sprite
 ---@param image_table table table where serialized images will be inserted, with their id as their key.
@@ -611,9 +610,6 @@ function LayerSerializer:beforeLoad(obj, store_location)
 end
 
 
---- Serializer for serializing aseprite layer groups.
---- Stackindex is handled the same as in LayerSerializer
----
 ---@class LayerSerializer
 ---@see LayerSerializer
 LayerGroupSerializer = inherit(Serializer, { copy_fields = { "name", "isEditable", "isVisible", "isCollapsed", "color", "data", "properties" } })
@@ -647,7 +643,6 @@ end
 
 --- Creates a new group at the top of the sprites layerstack, and deserializes the passed serialized group into this new group,
 --- including all of its serialized children layers.
----
 ---@param layer_group table
 ---@param sprite Sprite
 ---@param image_table table
@@ -690,7 +685,6 @@ function LayerGroupSerializer:beforeLoad(obj, store_location)
 end
 
 
---- Serializer for Aseprite Tile objects.
 ---@class TileSerializer
 TileSerializer = inherit(Serializer, { copy_fields = { "image", "color", "data", "properties" } })
 Serializer:register("Tile", TileSerializer)
@@ -698,7 +692,7 @@ Serializer:register("Tile", TileSerializer)
 ---@param tile any
 ---@return boolean
 function TileSerializer:canSerialize(tile)
-    return type(tile) == "userdata" and tile.__name == "tile"
+    return type(tile) == "userdata" and tile.__name == "Tile"
 end
 
 ---@param tile_table table
@@ -709,9 +703,8 @@ function TileSerializer:deserialize(tile_table, sprite, tileset)
     return Serializer.deserialize(self, tile_table, sprite:newTile(tileset))
 end
 
---- Serializer for Aseprite Tileset objects.
 ---@class TilesetSerializer
-TilesetSerializer = inherit(Serializer, { copy_fields = { "name", "grid", "baseIndex", "color", "data", "properties" } })
+TilesetSerializer = inherit(Serializer, { copy_fields = { "name", "baseIndex", "color", "data", "properties" } })
 Serializer:register("Tileset", TilesetSerializer)
 
 ---@param tileset any
@@ -724,6 +717,8 @@ end
 function TilesetSerializer:serialize(tileset)
     local tileset_table = Serializer.serialize(self, tileset)
 
+    tileset_table.grid = Serializer:genericSerialize(Rectangle(tileset.grid.origin.x, tileset.grid.origin.y, tileset.grid.tileSize.w, tileset.grid.tileSize.h))
+
     tileset_table.tiles = { }
 
     -- you cannot currently get the number of tiles in a tileset,
@@ -732,7 +727,7 @@ function TilesetSerializer:serialize(tileset)
     local tile = tileset:tile(#tileset_table.tiles)
 
     while tile do
-        table.insert(tileset_table.tiles, tile)
+        table.insert(tileset_table.tiles, Serializer:genericSerialize(tile))
 
         tile = tileset:tile(#tileset_table.tiles)
     end
@@ -744,7 +739,8 @@ end
 ---@param sprite Sprite sprite to add tileset to
 ---@return Tileset
 function TilesetSerializer:deserialize(tileset_table, sprite)
-    local tileset = Serializer.deserialize(self, tileset_table, sprite:newTileset())
+    local rect = Serializer:genericDeserialize(tileset_table.grid)
+    local tileset = Serializer.deserialize(self, tileset_table, sprite:newTileset(Grid(Serializer:genericDeserialize(tileset_table.grid))))
 
     for _, tile in ipairs(tileset_table.tiles) do
         Serializer:genericDeserialize(tile, { args = { sprite, tileset } })
@@ -753,8 +749,29 @@ function TilesetSerializer:deserialize(tileset_table, sprite)
     return tileset
 end
 
+---@param tileset_table table
+---@param location string
+---@return table
+function TilesetSerializer:beforeStore(tileset_table, location)
+    for i, tile in ipairs(tileset_table.tiles) do
+        tileset_table.tiles[i] = Serializer:makeStoreCompatible(tile, location)
+    end
 
---- Serializer for Aseprite Tilemap object.
+    return tileset_table
+end
+
+---@param tileset_table table
+---@param location string
+---@return table
+function TilesetSerializer:beforeLoad(tileset_table, location)
+    for i, tile in ipairs(tileset_table.tiles) do
+        tileset_table.tiles[i] = Serializer:makeLoadCompatible(tile, location)
+    end
+
+    return tileset_table
+end
+
+
 ---@class TilemapSerializer
 TilemapSerializer = inherit(Serializer, { copy_fields = { "name", "opacity", "blendMode", "isEditable", "isVisible", "isContinuous", "color", "data", "properties" } })
 Serializer:register("Tilemap", TilemapSerializer)
@@ -767,17 +784,23 @@ end
 
 ---@param tilemap Tilemap
 ---@return table
-function TilemapSerializer:serialize(tilemap)
+function TilemapSerializer:serialize(tilemap, image_table)
     local tilemap_table = Serializer.serialize(self, tilemap)
     tilemap_table.tileset = Serializer:genericSerialize(tilemap.tileset)
     
+    tilemap_table.cels = { }
+    
+    for _, cel in ipairs(tilemap.cels) do
+        table.insert(tilemap_table.cels, Serializer:genericSerialize(cel, { args = { image_table }}))
+    end
+
     return tilemap_table
 end
 
 ---@param tilemap_table table
 ---@param sprite Sprite
 ---@return Tilemap
-function TilemapSerializer:deserialize(tilemap_table, sprite)
+function TilemapSerializer:deserialize(tilemap_table, sprite, image_table)
     -- !!! TODO !!!: Aseprite does not support creating tilemaps through its sprite objects yet,
     -- so as a workaround we instead create one through the app.commands interface.
     -- [This assumes that the passed sprite is equal to app.sprite], which is probably true anyway,
@@ -792,7 +815,69 @@ function TilemapSerializer:deserialize(tilemap_table, sprite)
 
     tilemap.tileset = Serializer:genericDeserialize(tilemap_table.tileset, { args = { sprite } })
 
+    for _, cel in ipairs(tilemap_table.cels) do
+        Serializer:genericDeserialize(cel, { args = { tilemap, sprite, image_table} })
+    end
+
     return tilemap
+end
+
+---@param tilemap_table table
+---@param store_location string
+---@return table
+function TilemapSerializer:beforeStore(tilemap_table, store_location)
+    -- beforeStore is only recursively called on serialized fields, and since a list of serialized value is not seen as a serialized field,
+    -- we need to handler looping over the serialized child layers in the children field and make them store compatible, in the LayerGroupSerializer class itself. 
+    for i, child_layer in ipairs(tilemap_table.cels) do
+        tilemap_table.cels[i] = Serializer:makeStoreCompatible(child_layer, store_location)
+    end
+    
+    return tilemap_table
+end
+
+---@param tilemap_table table
+---@param store_location string
+---@return table
+function TilemapSerializer:beforeLoad(tilemap_table, store_location)
+    for i, child_layer in ipairs(tilemap_table.cels) do
+        tilemap_table.cels[i] = Serializer:makeLoadCompatible(child_layer, store_location)
+    end
+
+    return tilemap_table
+end
+
+
+--- Aseprite currently segfaults if an image in a tilemap is saved, (see: https://github.com/aseprite/aseprite/issues/4069).
+--- Aditionally, the expected behaviour will be to save an image of the tilemap and not the index references, which is not what we want to store here,
+--- so this will probably be the required solution, even if this issue is fixed.
+---@class TilemapImageSerializer
+TilemapImageSerializer = inherit(Serializer, { copy_fields = { "width", "height", "colorMode", "bytes" }})
+Serializer:register("TilemapImage", TilemapImageSerializer)
+
+---@param image any
+---@return boolean
+function TilemapImageSerializer:canSerialize(image)
+    if type(image) ~= "userdata" or image.__name ~= "ImageObj" then
+        return false
+    end
+
+    local layer = nil
+
+    if image.cel then
+        pcall(function()
+            layer = image.cel.layer
+        end)
+    end
+
+    return (layer and layer.isTilemap) == true -- convert to boolean
+end
+
+---@param image_table any
+---@return unknown
+function TilemapImageSerializer:deserialize(image_table)
+    local image = Image(image_table.width, image_table.height, image_table.colorMode)
+    image.bytes = image_table.bytes
+    return image
 end
 
 
@@ -837,7 +922,8 @@ Serializer:register("Properties", PropertiesSerializer)
 ---@param props any
 ---@return boolean
 function PropertiesSerializer:canSerialize(props)
-    return type(props) == "userdata" and props.__name == "Properties"
+    -- Properties.__name returns nil for some reason, instead of "Properties" or something similar, so we use the tostring string instead.
+    return type(props) == "userdata" and tostring(props):match("Properties: 0x%x+")
 end
 
 ---@param properties Properties
@@ -848,16 +934,16 @@ function PropertiesSerializer:serialize(properties)
     -- we always serialize user proeprties, which is stored in the empty key.
     local property_keys = { "" }
 
-    for _, key in ipairs(property_keys) do
+    for key, _ in pairs(self.keys) do
         table.insert(property_keys, key)
     end
 
-    for _, prop_key in property_keys do
+    for _, prop_key in ipairs(property_keys) do
 
         properties_table[prop_key] = { }
 
-        for key, value in properties(prop_key) do
-            properties_table[property_keys][key] = Serializer:genericSerialize(value)
+        for key, value in pairs(properties(prop_key)) do
+            properties_table[prop_key][key] = Serializer:genericSerialize(value)
         end
     end
 
@@ -868,8 +954,8 @@ end
 ---@param properties Properties
 ---@return Properties
 function PropertiesSerializer:deserialize(prop_table, properties)
-    for prop_key, key_props in prop_table do
-        for key, value in key_props do
+    for prop_key, key_props in pairs(prop_table) do
+        for key, value in pairs(key_props) do
             properties(prop_key)[key] = Serializer:genericDeserialize(value)
         end
     end
@@ -880,8 +966,8 @@ end
 ---@param prop_table table
 ---@param location string
 function PropertiesSerializer:beforeStore(prop_table, location)
-    for prop_key, key_props in prop_table do
-        for key, value in key_props do
+    for prop_key, key_props in pairs(prop_table) do
+        for key, value in pairs(key_props) do
             prop_table[prop_key][key] = Serializer:makeStoreCompatible(value, location)
         end
     end
@@ -893,8 +979,8 @@ end
 ---@param location string
 ---@return table
 function PropertiesSerializer:beforeLoad(prop_table, location) 
-    for prop_key, key_props in prop_table do
-        for key, value in key_props do
+    for prop_key, key_props in pairs(prop_table) do
+        for key, value in pairs(key_props) do
             prop_table[prop_key][key] = Serializer:makeLoadCompatible(value, location)
         end
     end
@@ -903,11 +989,9 @@ function PropertiesSerializer:beforeLoad(prop_table, location)
 end
 
 
---- Serializer for Aseprite Sprite object.
----
 ---@class SpriteSerializer
 SpriteSerializer = inherit(Serializer, {
-    copy_fields = { "gridBounds", "pixelRatio", "color", "data", "tileManagementPlugin" },
+    copy_fields = { "gridBounds", "pixelRatio", "color", "data", "tileManagementPlugin", "properties" },
 })
 Serializer:register("Sprite", SpriteSerializer)
 
@@ -933,9 +1017,9 @@ function SpriteSerializer:serialize(sprite)
     sprite_table.tags = { }
     sprite_table.slices = { }
 
-    for _, array in ipairs({ sprite_table.frames, sprite_table.tags, sprite_table.slices }) do
-        for _, elem in ipairs(array) do
-            table.insert(array, Serializer:genericSerialize(elem))
+    for _, array in ipairs({ "frames", "tags", "slices" }) do
+        for _, elem in ipairs(sprite[array]) do
+            table.insert(sprite_table[array], Serializer:genericSerialize(elem))
         end
     end
 
