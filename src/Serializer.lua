@@ -457,7 +457,7 @@ end
 ---@return string file_name
 function PaletteSerializer:beforeStore(palette, location)
     
-    local file_name = "palette-%i-.gpl"
+    local file_name = "palette-%i.gpl"
 
     if palette.frame then
         file_name = string.format(file_name, palette.frame.frameNumber)
@@ -512,17 +512,20 @@ end
 ---@param layer Layer layer to add cel to.
 ---@param sprite Sprite sprite to add cel to.
 ---@param image_table table same table passed in CelSerializer.serialize
+---@param image_frame_table table table to store which cels should be linked together.
 ---@return Cel
-function CelSerializer:deserialize(cel_table, layer, sprite, image_table)
-    local cel = layer.cels[cel_table.frame]
+function CelSerializer:deserialize(cel_table, layer, sprite, image_table, image_frame_table)
+    local cel = sprite:newCel(layer, Serializer:genericDeserialize(cel_table.frame))
 
-    if not cel then
-        cel = sprite:newCel(layer, cel_table.frame)
-    end
-    
     cel = Serializer.deserialize(self, cel_table, cel)
-    
+
     cel.image = Serializer:genericDeserialize(image_table[cel_table.image_id])
+
+    if not image_frame_table[cel_table.image_id] then
+        image_frame_table[cel_table.image_id] = { }
+    end
+
+    table.insert(image_frame_table[cel_table.image_id], cel.frameNumber)
 
     return cel
 end
@@ -578,8 +581,23 @@ end
 function LayerSerializer:deserialize(serialized_layer, sprite, image_table)
     local layer = Serializer.deserialize(self, serialized_layer, sprite:newLayer())
 
+
+    -- store a table of image ids as keys, and cel lists as values,
+    -- where the list of cels represent cels which needs to be linked together.
+    local image_frame_table = { }
+
     for _, cel in ipairs(serialized_layer.cels) do
-        Serializer:genericDeserialize(cel, { args = { layer, sprite, image_table} })
+        Serializer:genericDeserialize(cel, { args = { layer, sprite, image_table, image_frame_table } })
+    end
+
+    app.range.layers = { layer }
+
+    for _, frames in pairs(image_frame_table) do
+        app.range.frames = frames
+        -- the only way to link cels through scripting right now is this command,
+        -- which acts on the active user selection instead of any command parameters.
+        -- TODO: replace this with a better option once added by aseprite.
+        app.command.LinkCels()
     end
 
     return layer
@@ -722,13 +740,15 @@ function TilesetSerializer:serialize(tileset)
 
     -- you cannot currently get the number of tiles in a tileset,
     -- so instead we iterate over the tiles, until we hit a nil value for an index.
+    -- also we do not want to store the empty tile, as this is automatically included in new tilesets.
 
-    local tile = tileset:tile(#tileset_table.tiles)
+
+    local tile = tileset:tile(#tileset_table.tiles + 1)
 
     while tile do
         table.insert(tileset_table.tiles, Serializer:genericSerialize(tile))
 
-        tile = tileset:tile(#tileset_table.tiles)
+        tile = tileset:tile(#tileset_table.tiles + 1)
     end
 
     return tileset_table
@@ -738,7 +758,6 @@ end
 ---@param sprite Sprite sprite to add tileset to
 ---@return Tileset
 function TilesetSerializer:deserialize(tileset_table, sprite)
-    local rect = Serializer:genericDeserialize(tileset_table.grid)
     local tileset = Serializer.deserialize(self, tileset_table, sprite:newTileset(Grid(Serializer:genericDeserialize(tileset_table.grid))))
 
     for _, tile in ipairs(tileset_table.tiles) do
@@ -814,8 +833,17 @@ function TilemapSerializer:deserialize(tilemap_table, sprite, image_table)
 
     tilemap.tileset = Serializer:genericDeserialize(tilemap_table.tileset, { args = { sprite } })
 
+    local image_frame_table = { }
+
     for _, cel in ipairs(tilemap_table.cels) do
-        Serializer:genericDeserialize(cel, { args = { tilemap, sprite, image_table} })
+        Serializer:genericDeserialize(cel, { args = { tilemap, sprite, image_table, image_frame_table} })
+    end
+
+    app.range.layers = { tilemap }
+
+    for _, frames in pairs(image_frame_table) do
+        app.range.frames = frames
+        app.command.LinkCels()
     end
 
     return tilemap
@@ -871,14 +899,40 @@ function TilemapImageSerializer:canSerialize(image)
     return (layer and layer.isTilemap) == true -- convert to boolean
 end
 
----@param image_table any
----@return unknown
-function TilemapImageSerializer:deserialize(image_table)
+---@param image Image
+---@return Image
+function TilemapImageSerializer:serialize(image)
+    return Image(image)
+end
+
+---@param image Image
+---@return Image
+function TilemapImageSerializer:deserialize(image)
+    return image
+end
+
+---@param image Image
+---@return table
+function TilemapImageSerializer:beforeStore(image)
+    local image_table = { }
+    
+    -- store image data in json file instead of png, as this is not supported.
+
+    Serializer:copyFields(self.copy_fields,
+        image,
+        image_table,
+        Serializer.genericSerialize)
+
+    return image_table
+end
+
+---@param image_table table
+---@return Image
+function TilemapImageSerializer:beforeLoad(image_table)
     local image = Image(image_table.width, image_table.height, image_table.colorMode)
     image.bytes = image_table.bytes
     return image
 end
-
 
 --- Serializer (not really) for Aseprite reference layers.
 --- 
@@ -1045,30 +1099,31 @@ end
 function SpriteSerializer:deserialize(sprite_table)
     local sprite = Serializer.deserialize(self, sprite_table, Sprite(sprite_table.width, sprite_table.height, sprite_table.colorMode))
     
-    -- sprites are created with an initial layer, however we do not want it present,
-    -- as they it mess up our deserialization of the serialized layers,
-    -- so we remove them here.
-    
-    sprite:deleteLayer(sprite.layers[1])
-    
     -- all proceeding deserializations require all of the frames of the sprite to be present, so we add them here whilst deserializing frames.
-
+    
     for frame_num, _ in ipairs(sprite_table.frames) do
         if #sprite.frames < frame_num then
             sprite:newEmptyFrame()
         end
-
+        
     end
-
+    
     for _, array in ipairs({ sprite_table.frames, sprite_table.tags, sprite_table.slices}) do
         for _, elem in ipairs(array) do
             Serializer:genericDeserialize(elem, { args = { sprite }})
         end
     end
+
+    -- a new sprite starts out with a default layer, which we need to remove later.
+    local del_layer = sprite.layers[1]
     
     for _, layer in ipairs(sprite_table.layers) do
         Serializer:genericDeserialize(layer, { args = { sprite, sprite_table.images } })
     end
+    
+    sprite:deleteLayer(del_layer)
+
+    sprite:setPalette(Serializer:genericDeserialize(sprite_table.palette))
 
     return sprite
 end

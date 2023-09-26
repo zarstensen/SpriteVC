@@ -377,6 +377,13 @@ function TestSerializer:SpriteSerialize()
     for i, _ in ipairs(new_sprite.cels) do
         self._compareImages(new_sprite.cels[i].image, sprite.cels[i].image, "Cel %s has incorrect image data.", i)
     end
+
+    Test.assertEq(0, #new_sprite.palettes[1], #sprite.palettes[1], "Palette size did not match.")
+
+    for i = 0, #new_sprite.palettes[1] - 1 do
+        Test.assertEq(0, new_sprite.palettes[1]:getColor(i), sprite.palettes[1]:getColor(i), "Palette colors did not match at index %s", i)
+    end
+
 end
 
 --- construct a simple sprite of width and height 1.

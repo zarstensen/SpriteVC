@@ -42,7 +42,7 @@ RUN cmake \
     -DCMAKE_CXX_FLAGS:STRING=-stdlib=libc++ \
     -DCMAKE_EXE_LINKER_FLAGS:STRING=-stdlib=libc++ \
     -DLAF_BACKEND=none \
-    -DENABLE_UI=OFF \
+    -DENABLE_UI=ON \
     -S ${ASEPRITE_SRC} -B ${ASEPRITE_SRC}/build
 
 RUN cmake --build ${ASEPRITE_SRC}/build --config Release -j 24
