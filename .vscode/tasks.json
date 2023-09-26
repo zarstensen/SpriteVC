@@ -5,15 +5,18 @@
         "-c"
     ],
     "options": {
-        "cwd": "${workspaceFolder}/src"
+        "cwd": "${workspaceFolder}"
     },
     "tasks": [
       {
         "label": "Publish incr",
         "command": "python",
         "args": [
-            "../publish.py",
-            "increment"
+            "publish.py",
+            "extension",
+            "increment",
+            "zip",
+            "publish",
         ],
         "group": {
           "kind": "build",
@@ -24,8 +27,11 @@
         "label": "Publish patch",
         "command": "python",
         "args": [
-            "../publish.py",
-            "patch"
+            "publish.py",
+            "extension",
+            "patch",
+            "zip",
+            "publish",
         ],
         "group": {
           "kind": "build",
@@ -36,8 +42,11 @@
         "label": "Publish minor",
         "command": "python",
         "args": [
-            "../publish.py",
-            "minor"
+            "publish.py",
+            "extension",
+            "minor",
+            "zip",
+            "publish",
         ],
         "group": {
           "kind": "build",
@@ -48,8 +57,11 @@
         "label": "Publish major",
         "command": "python",
         "args": [
-            "../publish.py",
-            "major"
+            "publish.py",
+            "extension",
+            "major",
+            "zip",
+            "publish",
         ],
         "group": {
           "kind": "build",
@@ -60,7 +72,7 @@
         "label": "Install",
         "command": "cmd",
         "args": [
-            "/c echo installing latest publish && start /min cmd /c start ${workspaceFolder}/publish/poser.aseprite-extension" 
+            "/c echo installing latest publish && start /min cmd /c start ${workspaceFolder}/publish/spritevc.aseprite-extension" 
         ],
         "group": {
           "kind": "build",
