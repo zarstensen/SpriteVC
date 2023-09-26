@@ -1,4 +1,4 @@
-require 'inherit'
+require 'Inherit'
 Json = require 'json'
 
 --- Base class for all serializers.

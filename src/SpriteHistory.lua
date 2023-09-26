@@ -1,4 +1,5 @@
-require 'inherit'
+require 'Inherit'
+require 'Serializer'
 
 ---@class SpriteSnapshot
 SpriteSnapshot = inherit(NewObj, {})

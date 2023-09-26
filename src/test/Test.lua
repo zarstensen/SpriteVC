@@ -1,4 +1,4 @@
-require 'inherit'
+require 'Inherit'
 
 ---@class Test
 Test = inherit(NewObj, {})
