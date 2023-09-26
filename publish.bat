@@ -1,1 +1,1 @@
-python publish.py test none zip publish
+python publish.py extension none zip publish
