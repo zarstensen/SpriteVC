@@ -1,9 +1,9 @@
-require 'TestNoFileSprite'
-require 'TestSerialize'
-
 --- 
 --- Entry point for test version of the SpriteVC extension.
 --- 
+
+require 'TestNoFileSprite'
+require 'TestSerialize'
 
 function init(plugin)
     -- io.open needs all of the folders to exist before the file can be opened, so these are made here

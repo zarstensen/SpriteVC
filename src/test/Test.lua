@@ -149,7 +149,7 @@ function Test:performTest()
 
             case_succeded = false
         else
-            result_str = self._log("OK!", result_str)
+            result_str = self._log("PASSED!", result_str)
         end
 
         result_str = self._log("", result_str)
