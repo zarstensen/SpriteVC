@@ -42,7 +42,6 @@ function Serializer:genericSerialize(obj, kwargs)
             end
         end
     end
-
     if serializer_uid then
         return { uid = serializer_uid, data = self.serializers[serializer_uid]:serialize(obj, table.unpack(args)) }
     end
@@ -923,7 +922,7 @@ Serializer:register("Properties", PropertiesSerializer)
 ---@return boolean
 function PropertiesSerializer:canSerialize(props)
     -- Properties.__name returns nil for some reason, instead of "Properties" or something similar, so we use the tostring string instead.
-    return type(props) == "userdata" and tostring(props):match("Properties: 0x%x+")
+    return type(props) == "userdata" and tostring(props):match("Properties: %x+")
 end
 
 ---@param properties Properties
