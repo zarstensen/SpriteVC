@@ -27,7 +27,7 @@ jobs:
             env:
                 GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
             with:
-                route: GET /repos/${{ github.repository }}/releases/tags/${{ github.ref }}
+                route: GET /repos/${{ github.repository }}/releases/tags/${{ github.ref_name }}
 
           - run: echo "HELLO ${{ fromJson(steps.retrieve_release.outputs.data).id }}"
 
