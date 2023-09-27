@@ -23,7 +23,7 @@ jobs:
           
           - name: Make Extension Contents Avaliable
             id: make_extension_contents_avaliable
-            run: echo "extension=value" >> $GITHUB_OUTPUT
+            run: echo "extension=$(cat publish/spritevc.aseprite-extension)" >> $GITHUB_OUTPUT
 
           - run: echo "HELLO ${{ github.ref }}"
           - run: echo "HELLO ${{ steps.make_extension_contents_avaliable.outputs.extension }}"
