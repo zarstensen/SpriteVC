@@ -33,13 +33,7 @@ jobs:
 
           - name: Publish Asset
             id: publish_asset 
-            uses: octokit/request-action@v2.x
-            env:
-                GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-            with:
-                route: POST /repos/${{ github.repository }}/releases/{release_id}/assets?name=spritevc.aseprite-extension
-                release_id: ${{ fromJson(steps.retrieve_release.outputs.data).id }}
-                body: $(cat publish/spritevc.aseprite-extension) 
+            run: curl --help
                   
                 
 
