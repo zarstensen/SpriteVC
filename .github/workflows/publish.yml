@@ -1,0 +1,53 @@
+name: SpriteVC Publish
+run-name: ${{ github.ref_name }} Publish
+
+on:
+    release:
+        types: [published]
+    
+jobs:
+    publish_extension:
+        name: Publish Extension
+        runs-on: ubuntu-latest
+
+        steps:
+          - name: Checkout Repo
+            id: checkout_repo
+            uses: actions/checkout@v4
+            with:
+              submodules: recursive
+        
+          - name: Create Extension
+            id: create_extension
+            run: python publish.py extension none zip publish/
+          
+          - name: Make Extension Contents Avaliable
+            id: make_extension_contents_avaliable
+            run: echo "extension=value" >> $GITHUB_OUTPUT
+
+          - run: echo "HELLO ${{ github.ref }}"
+          - run: echo "HELLO ${{ steps.make_extension_contents_avaliable.outputs.extension }}"
+
+          - name: Retrieve Release
+            id: retrieve_release
+            uses: octokit/request-action@v2.x
+            env:
+                GITHUB_TOKEN: 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
+            with:
+                route: GET /repos/${{ github.repository }}/releases/tags/${{ github.ref }}
+
+          - run: echo "HELLO ${{ fromJson(steps.retrieve_release.outputs.data).id }}"
+
+          - name: Publish Asset
+            id: publish_asset 
+            uses: octokit/request-action@v2.x
+            env:
+                GITHUB_TOKEN: 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
+            with:
+                route: POST /repos/${{ github.repository }}/releases/{release_id}/assets?name=spritevc.aseprite-extension
+                release_id: ${{ fromJson(steps.retrieve_release.outputs.data).id }}
+                body: 
+                  
+                
+
+          
