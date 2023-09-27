@@ -20,13 +20,6 @@ jobs:
           - name: Create Extension
             id: create_extension
             run: python publish.py extension none zip publish/
-          
-          - name: Make Extension Contents Avaliable
-            id: make_extension_contents_avaliable
-            run: echo "extension=$(cat publish/spritevc.aseprite-extension)" >> $GITHUB_OUTPUT
-
-          - run: echo "HELLO ${{ github.ref }}"
-          - run: echo "HELLO ${{ steps.make_extension_contents_avaliable.outputs.extension }}"
 
           - name: Retrieve Release
             id: retrieve_release
@@ -46,7 +39,7 @@ jobs:
             with:
                 route: POST /repos/${{ github.repository }}/releases/{release_id}/assets?name=spritevc.aseprite-extension
                 release_id: ${{ fromJson(steps.retrieve_release.outputs.data).id }}
-                body: 
+                body: $(cat publish/spritevc.aseprite-extension) 
                   
                 
 
