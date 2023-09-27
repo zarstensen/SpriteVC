@@ -2,8 +2,7 @@ name: SpriteVC Publish
 run-name: ${{ github.ref_name }} Publish
 
 on:
-    release:
-        types: [published]
+    release: []
     
 jobs:
     publish_extension:
